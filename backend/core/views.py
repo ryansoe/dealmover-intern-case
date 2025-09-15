@@ -62,8 +62,6 @@ def extract_values_from_text(text):
     # Looking for "Cost of revenues" followed by dollar amounts (positive or negative)
     cost_pattern = r'Cost of revenues\s*\$\s*(?:\(([\d,]+)\)|([\d,]+))\s*\$\s*(?:\(([\d,]+)\)|([\d,]+))'
     cost_match = re.search(cost_pattern, text)
-
-    print(revenue_match)
     
     if not revenue_match or not cost_match:
         return []
@@ -108,17 +106,46 @@ def extract(request):
             return JsonResponse({'error': 'File size exceeds 10MB limit'}, status=400)
 
         # Get optional period_end_date parameter
-        period_end_date = request.POST.get('period_end_date', '2024-12-31')
+        requested_period_end_date = request.POST.get('period_end_date')
         
         pdf_text = pdf_to_text(uploaded_file)
         
         values = extract_values_from_text(pdf_text)
-
+        
+        if not values:
+            return JsonResponse({'error': 'Could not extract financial data from PDF'}, status=400)
+        
+        selected_data = None
+        
+        if requested_period_end_date:
+            try:
+                requested_year = requested_period_end_date.split('-')[0]
+                for row in values:
+                    year, revenue, cost = row
+                    if year == requested_year:
+                        selected_data = row
+                        break
+                
+                if selected_data is None:
+                    available_years = [row[0] for row in values]
+                    return JsonResponse({
+                        'error': f'Data for year {requested_year} not found. Available years: {", ".join(available_years)}'
+                    }, status=400)
+                    
+            except (IndexError, ValueError):
+                return JsonResponse({'error': 'Invalid period_end_date format. Use YYYY-MM-DD'}, status=400)
+        else:
+            selected_data = values[-1]
+        
+        year, revenue, cost = selected_data
+        
+        period_end_date = f"{year}-12-31"
+        
         response_data = {
             "period_end_date": period_end_date,
             "results": {
-                "revenue": "350018",
-                "cos": "146306"
+                "revenue": revenue,
+                "cos": cost
             }
         }
 
