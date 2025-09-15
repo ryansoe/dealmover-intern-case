@@ -145,5 +145,4 @@ FILE_UPLOAD_PERMISSIONS = 0o644
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
-# Temporary file upload directory
-FILE_UPLOAD_TEMP_DIR = BASE_DIR / 'tmp'
+
