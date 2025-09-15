@@ -1,33 +1,72 @@
 import { useState } from "react";
 
+interface ApiResponse {
+  period_end_date: string;
+  results: {
+    revenue: string;
+    cos: string;
+  };
+}
+
 function ResultsGrid() {
   const [file, setFile] = useState<File | null>(null);
   const [periodEndDate, setPeriodEndDate] = useState<string>("");
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string>("");
+  const [results, setResults] = useState<ApiResponse | null>(null);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = event.target.files?.[0];
     if (selectedFile) {
       setFile(selectedFile);
+      setError(""); // Clear any previous errors
     }
   };
 
-  const handleSubmit = (event: React.FormEvent) => {
+  const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
 
-    // For now, just log the data to console
-    console.log("Selected file:", file?.name);
-    console.log("Period end date:", periodEndDate);
-
     if (!file) {
-      alert("Please select a PDF file");
+      setError("Please select a PDF file");
       return;
     }
 
-    alert(
-      `File selected: ${file.name}${
-        periodEndDate ? `, Date: ${periodEndDate}` : ""
-      }`
-    );
+    setLoading(true);
+    setError("");
+    setResults(null);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      if (periodEndDate) {
+        formData.append("period_end_date", periodEndDate);
+      }
+
+      const apiBaseUrl =
+        import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
+      const response = await fetch(`${apiBaseUrl}/api/extract/`, {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to extract data");
+      }
+
+      const data: ApiResponse = await response.json();
+      setResults(data);
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "An error occurred while processing the file"
+      );
+      setResults(null);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -84,20 +123,59 @@ function ResultsGrid() {
 
         <button
           type="submit"
-          disabled={!file}
+          disabled={loading || !file}
           style={{
             padding: "10px 20px",
-            backgroundColor: !file ? "#ccc" : "#007bff",
+            backgroundColor: loading || !file ? "#ccc" : "#007bff",
             color: "white",
             border: "none",
             borderRadius: "4px",
-            cursor: !file ? "not-allowed" : "pointer",
+            cursor: loading || !file ? "not-allowed" : "pointer",
             fontSize: "16px",
           }}
         >
-          Process File
+          {loading ? "Processing..." : "Extract Data"}
         </button>
       </form>
+
+      {error && (
+        <div
+          style={{
+            color: "red",
+            backgroundColor: "#ffebee",
+            padding: "15px",
+            borderRadius: "4px",
+            marginBottom: "20px",
+            border: "1px solid #ffcdd2",
+          }}
+        >
+          <strong>Error:</strong> {error}
+        </div>
+      )}
+
+      {results && (
+        <div
+          style={{
+            backgroundColor: "#e8f5e8",
+            padding: "15px",
+            borderRadius: "4px",
+            border: "1px solid #c8e6c9",
+          }}
+        >
+          <h3>Success!</h3>
+          <p>
+            <strong>Period End Date:</strong> {results.period_end_date}
+          </p>
+          <p>
+            <strong>Revenue:</strong> $
+            {parseInt(results.results.revenue).toLocaleString()}
+          </p>
+          <p>
+            <strong>Cost of Sales:</strong> $
+            {parseInt(results.results.cos).toLocaleString()}
+          </p>
+        </div>
+      )}
     </div>
   );
 }
