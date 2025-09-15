@@ -5,7 +5,7 @@ This document details the use of AI tools during the development of the Financia
 ## Tools Used
 
 - **Claude (Anthropic)** - Primary AI assistant used through Cursor IDE
-- **GitHub Copilot** - Code completion and suggestions (if applicable)
+- **Cursor** - Code completion and suggestions (if applicable)
 
 ## Detailed Usage Log
 
