@@ -54,23 +54,34 @@ def extract_values_from_text(text):
     year1, year2 = year_match.groups()
     
     # Pattern to extract consolidated revenues
-    # Looking for "Consolidated revenues" followed by dollar amounts
-    revenue_pattern = r'Consolidated revenues\s*\$\s*([\d,]+)\s*\$\s*([\d,]+)'
+    # Looking for "Consolidated revenues" followed by dollar amounts (positive or negative)
+    revenue_pattern = r'Consolidated revenues\s*\$\s*(?:\(([\d,]+)\)|([\d,]+))\s*\$\s*(?:\(([\d,]+)\)|([\d,]+))'
     revenue_match = re.search(revenue_pattern, text)
     
     # Pattern to extract cost of revenues
-    # Looking for "Cost of revenues" followed by dollar amounts
-    cost_pattern = r'Cost of revenues\s*\$\s*([\d,]+)\s*\$\s*([\d,]+)'
+    # Looking for "Cost of revenues" followed by dollar amounts (positive or negative)
+    cost_pattern = r'Cost of revenues\s*\$\s*(?:\(([\d,]+)\)|([\d,]+))\s*\$\s*(?:\(([\d,]+)\)|([\d,]+))'
     cost_match = re.search(cost_pattern, text)
+
+    print(revenue_match)
     
     if not revenue_match or not cost_match:
         return []
     
-    # Extract the values and remove commas for cleaner numbers
-    revenue1 = revenue_match.group(1).replace(',', '')
-    revenue2 = revenue_match.group(2).replace(',', '')
-    cost1 = cost_match.group(1).replace(',', '')
-    cost2 = cost_match.group(2).replace(',', '')
+    # Helper function to extract and format number (positive or negative)
+    def extract_number(match_groups):
+        """Extract number from regex groups, handling parentheses for negative numbers"""
+        negative_value, positive_value = match_groups
+        if negative_value:  # Number was in parentheses (negative)
+            return '-' + negative_value.replace(',', '')
+        else:  # Regular positive number
+            return positive_value.replace(',', '')
+    
+    # Extract the values and handle positive/negative formatting
+    revenue1 = extract_number((revenue_match.group(1), revenue_match.group(2)))
+    revenue2 = extract_number((revenue_match.group(3), revenue_match.group(4)))
+    cost1 = extract_number((cost_match.group(1), cost_match.group(2)))
+    cost2 = extract_number((cost_match.group(3), cost_match.group(4)))
     
     # Return as 2D array: [year_ended, consolidated_revenues, cost_of_revenues]
     result = [
@@ -102,7 +113,6 @@ def extract(request):
         pdf_text = pdf_to_text(uploaded_file)
         
         values = extract_values_from_text(pdf_text)
-        print(values)
 
         response_data = {
             "period_end_date": period_end_date,
