@@ -69,8 +69,15 @@ function ResultsGrid() {
     }
   };
 
+  const calculateGrossProfit = () => {
+    if (!results) return 0;
+    const revenue = parseInt(results.results.revenue);
+    const cos = parseInt(results.results.cos);
+    return revenue - cos;
+  };
+
   return (
-    <div style={{ padding: "20px", maxWidth: "600px", margin: "0 auto" }}>
+    <div style={{ padding: "20px", maxWidth: "800px", margin: "0 auto" }}>
       <h2>Financial Data Extractor</h2>
 
       <form onSubmit={handleSubmit} style={{ marginBottom: "30px" }}>
@@ -154,26 +161,127 @@ function ResultsGrid() {
       )}
 
       {results && (
-        <div
-          style={{
-            backgroundColor: "#e8f5e8",
-            padding: "15px",
-            borderRadius: "4px",
-            border: "1px solid #c8e6c9",
-          }}
-        >
-          <h3>Success!</h3>
-          <p>
-            <strong>Period End Date:</strong> {results.period_end_date}
-          </p>
-          <p>
-            <strong>Revenue:</strong> $
-            {parseInt(results.results.revenue).toLocaleString()}
-          </p>
-          <p>
-            <strong>Cost of Sales:</strong> $
-            {parseInt(results.results.cos).toLocaleString()}
-          </p>
+        <div>
+          <h3>
+            Financial Results for Period Ending: {results.period_end_date}
+          </h3>
+          <div
+            style={{
+              border: "1px solid #ddd",
+              borderRadius: "4px",
+              overflow: "hidden",
+              backgroundColor: "#f9f9f9",
+              boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+            }}
+          >
+            <table
+              style={{
+                width: "100%",
+                borderCollapse: "collapse",
+                backgroundColor: "white",
+              }}
+            >
+              <thead>
+                <tr style={{ backgroundColor: "#e3f2fd" }}>
+                  <th
+                    style={{
+                      padding: "15px 20px",
+                      textAlign: "left",
+                      borderBottom: "2px solid #ddd",
+                      fontWeight: "bold",
+                      fontSize: "16px",
+                      color: "#1565c0",
+                    }}
+                  >
+                    Metric
+                  </th>
+                  <th
+                    style={{
+                      padding: "15px 20px",
+                      textAlign: "right",
+                      borderBottom: "2px solid #ddd",
+                      fontWeight: "bold",
+                      fontSize: "16px",
+                      color: "#1565c0",
+                    }}
+                  >
+                    Amount (in millions)
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr style={{ backgroundColor: "white" }}>
+                  <td
+                    style={{
+                      padding: "15px 20px",
+                      borderBottom: "1px solid #eee",
+                      fontSize: "15px",
+                      fontWeight: "500",
+                      color: "#333",
+                    }}
+                  >
+                    Revenue
+                  </td>
+                  <td
+                    style={{
+                      padding: "15px 20px",
+                      textAlign: "right",
+                      borderBottom: "1px solid #eee",
+                      fontFamily: "monospace",
+                      fontSize: "16px",
+                      fontWeight: "bold",
+                      color: "#333",
+                    }}
+                  >
+                    ${parseInt(results.results.revenue).toLocaleString()}
+                  </td>
+                </tr>
+                <tr style={{ backgroundColor: "#f8f9fa" }}>
+                  <td
+                    style={{
+                      padding: "15px 20px",
+                      borderBottom: "1px solid #eee",
+                      fontSize: "15px",
+                      fontWeight: "500",
+                      color: "#333",
+                    }}
+                  >
+                    Gross Profit
+                  </td>
+                  <td
+                    style={{
+                      padding: "15px 20px",
+                      textAlign: "right",
+                      borderBottom: "1px solid #eee",
+                      fontFamily: "monospace",
+                      fontSize: "16px",
+                      fontWeight: "bold",
+                      color:
+                        calculateGrossProfit() >= 0 ? "#2e7d32" : "#d32f2f",
+                    }}
+                  >
+                    ${calculateGrossProfit().toLocaleString()}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          {/* Additional info */}
+          <div
+            style={{
+              marginTop: "15px",
+              padding: "15px",
+              backgroundColor: "#e8f5e8",
+              borderRadius: "4px",
+              fontSize: "14px",
+              color: "#2e7d32",
+              border: "1px solid #c8e6c9",
+            }}
+          >
+            <strong>Note:</strong> Gross Profit = Revenue - Cost of Sales ($
+            {parseInt(results.results.cos).toLocaleString()})
+          </div>
         </div>
       )}
     </div>
