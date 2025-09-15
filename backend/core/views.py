@@ -3,11 +3,41 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 import json
+import re
+import pdfplumber
+from io import BytesIO
 
 # Create your views here.
 
 def home(request):
     return HttpResponse('Hello, World!')
+
+def pdf_to_text(pdf_file):
+    """
+    Convert PDF file to plain text (simple version)
+    
+    Args:
+        pdf_file: Django UploadedFile object or file-like object
+    
+    Returns:
+        str: Extracted text from all pages concatenated
+    """
+    try:
+        pdf_file.seek(0)
+        pdf_content = BytesIO(pdf_file.read())
+        
+        text = ""
+        with pdfplumber.open(pdf_content) as pdf:
+            for page in pdf.pages:
+                page_text = page.extract_text()
+                if page_text:
+                    text += page_text + "\n"
+        
+        return text.strip()
+        
+    except Exception as e:
+        return f"Error: {str(e)}"
+
 
 @csrf_exempt
 @require_http_methods(["POST"])
@@ -27,7 +57,9 @@ def extract(request):
         # Get optional period_end_date parameter
         period_end_date = request.POST.get('period_end_date', '2024-12-31')
         
-        # TODO: Implement PDF extraction logic
+        pdf_text = pdf_to_text(uploaded_file)
+        with open('extracted_text.txt', 'w', encoding='utf-8') as f:
+            f.write(pdf_text)
 
         response_data = {
             "period_end_date": period_end_date,
