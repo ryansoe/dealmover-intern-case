@@ -1,10 +1,12 @@
 # Assumptions Made:
 
+Year Pattern: Form will always have "Year Ended December 31," followed by two years
 Year Format: Years are always 4 digits (e.g., "2023", "2024")
+Revenue Format: Form will always contain "Consolidated revenues" followed by two dollar amounts
+Cost of Sales Format: Form will always contain "Cost of revenues" followed by two dollar amounts
 Currency Format: Dollar amounts are preceded by "$" symbol
 Negative Numbers: Parentheses indicate negative values
 Number Formatting: Numbers may contain commas (e.g., "307,394")
-Table Layout: Financial data appears in a consistent table format with "Year Ended December 31" header
 
 # Decision: Regex Pattern Matching vs. Table Parsing Libraries
 
@@ -33,7 +35,3 @@ Table Layout: Financial data appears in a consistent table format with "Year End
 Given that this is a proof-of-concept focused on 10-K filings, regex provided the right balance of simplicity and control. The financial data in these documents follows a fairly consistent format, making regex patterns reliable for this use case.
 
 # Decision: Default to December 31st format (YYYY-12-31) when constructing period end dates.
-
-**Assumption:** Most financial periods end on December 31st, which is standard for annual reports.
-
-**Alternative:** Could have parsed actual dates from the document, but this adds complexity for minimal benefit in the target use case.
