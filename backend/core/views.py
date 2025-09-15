@@ -38,6 +38,48 @@ def pdf_to_text(pdf_file):
     except Exception as e:
         return f"Error: {str(e)}"
 
+def extract_values_from_text(text):
+    """
+    Extract revenue and cost of sales from text
+    Returns: 2D array where each row contains [year_ended, consolidated_revenues, cost_of_revenues]
+    """
+    # Pattern to match the financial table structure
+    # Looking for "Year Ended December 31," followed by years
+    year_pattern = r'Year Ended December 31,\s*\n\s*(\d{4})\s+(\d{4})'
+    year_match = re.search(year_pattern, text)
+    
+    if not year_match:
+        return []
+    
+    year1, year2 = year_match.groups()
+    
+    # Pattern to extract consolidated revenues
+    # Looking for "Consolidated revenues" followed by dollar amounts
+    revenue_pattern = r'Consolidated revenues\s*\$\s*([\d,]+)\s*\$\s*([\d,]+)'
+    revenue_match = re.search(revenue_pattern, text)
+    
+    # Pattern to extract cost of revenues
+    # Looking for "Cost of revenues" followed by dollar amounts
+    cost_pattern = r'Cost of revenues\s*\$\s*([\d,]+)\s*\$\s*([\d,]+)'
+    cost_match = re.search(cost_pattern, text)
+    
+    if not revenue_match or not cost_match:
+        return []
+    
+    # Extract the values and remove commas for cleaner numbers
+    revenue1 = revenue_match.group(1).replace(',', '')
+    revenue2 = revenue_match.group(2).replace(',', '')
+    cost1 = cost_match.group(1).replace(',', '')
+    cost2 = cost_match.group(2).replace(',', '')
+    
+    # Return as 2D array: [year_ended, consolidated_revenues, cost_of_revenues]
+    result = [
+        [year1, revenue1, cost1],
+        [year2, revenue2, cost2]
+    ]
+    
+    return result
+    
 
 @csrf_exempt
 @require_http_methods(["POST"])
@@ -58,8 +100,9 @@ def extract(request):
         period_end_date = request.POST.get('period_end_date', '2024-12-31')
         
         pdf_text = pdf_to_text(uploaded_file)
-        with open('extracted_text.txt', 'w', encoding='utf-8') as f:
-            f.write(pdf_text)
+        
+        values = extract_values_from_text(pdf_text)
+        print(values)
 
         response_data = {
             "period_end_date": period_end_date,
