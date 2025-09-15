@@ -38,6 +38,35 @@ def pdf_to_text(pdf_file):
     except Exception as e:
         return f"Error: {str(e)}"
 
+def _find_data_by_year(values, period_end_date):
+    """
+    Find financial data for a specific year from the extracted values.
+    
+    Args:
+        values: List of [year, revenue, cost] arrays
+        period_end_date: Date string in YYYY-MM-DD format
+    
+    Returns:
+        List with [year, revenue, cost] or JsonResponse with error
+    """
+    try:
+        requested_year = period_end_date.split('-')[0]
+    except (IndexError, ValueError):
+        return JsonResponse({'error': 'Invalid period_end_date format. Use YYYY-MM-DD'}, status=400)
+    
+    # Look for matching year in extracted data
+    for row in values:
+        year, revenue, cost = row
+        if year == requested_year:
+            return row
+    
+    # If requested year not found, return error with available years
+    available_years = [row[0] for row in values]
+    return JsonResponse({
+        'error': f'Data for year {requested_year} not found. Available years: {", ".join(available_years)}'
+    }, status=400)
+
+
 def extract_values_from_text(text):
     """
     Extract revenue and cost of sales from text
@@ -115,26 +144,12 @@ def extract(request):
         if not values:
             return JsonResponse({'error': 'Could not extract financial data from PDF'}, status=400)
         
-        selected_data = None
-        
         if requested_period_end_date:
-            try:
-                requested_year = requested_period_end_date.split('-')[0]
-                for row in values:
-                    year, revenue, cost = row
-                    if year == requested_year:
-                        selected_data = row
-                        break
-                
-                if selected_data is None:
-                    available_years = [row[0] for row in values]
-                    return JsonResponse({
-                        'error': f'Data for year {requested_year} not found. Available years: {", ".join(available_years)}'
-                    }, status=400)
-                    
-            except (IndexError, ValueError):
-                return JsonResponse({'error': 'Invalid period_end_date format. Use YYYY-MM-DD'}, status=400)
+            selected_data = _find_data_by_year(values, requested_period_end_date)
+            if isinstance(selected_data, JsonResponse):  # Error response
+                return selected_data
         else:
+            # No specific date requested, return the latest year (last item in the array)
             selected_data = values[-1]
         
         year, revenue, cost = selected_data
