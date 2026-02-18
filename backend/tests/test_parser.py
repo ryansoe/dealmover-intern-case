@@ -76,23 +76,27 @@ class TestFinancialDataParser:
         result = extract_values_from_text(invalid_text)
         assert result == []
     
-    def test_missing_revenue_data_returns_empty(self):
+    def test_missing_revenue_data_returns_error(self):
         invalid_text = """
         Year Ended December 31,
         2023 2024
         Cost of revenues $ 50,000 $ 75,000
         """
         result = extract_values_from_text(invalid_text)
-        assert result == []
-    
-    def test_missing_cost_data_returns_empty(self):
+        assert isinstance(result, dict)
+        assert 'error' in result
+        assert result['stage'] == 'revenue'
+
+    def test_missing_cost_data_returns_error(self):
         invalid_text = """
         Year Ended December 31,
         2023 2024
         Consolidated revenues $ 100,000 $ 200,000
         """
         result = extract_values_from_text(invalid_text)
-        assert result == []
+        assert isinstance(result, dict)
+        assert 'error' in result
+        assert result['stage'] == 'cost'
     
     def test_negative_numbers_with_parentheses(self):
         text_with_negatives = """
@@ -129,6 +133,74 @@ class TestFinancialDataParser:
             assert isinstance(revenue, str)
             assert isinstance(cost, str)
     
+    # --- robustness tests ---
+
+    def test_non_december_year_end(self):
+        text = (
+            "Year Ended March 31,\n"
+            "2023 2024\n"
+            "Consolidated revenues $ 100,000 $ 200,000\n"
+            "Cost of revenues $ 50,000 $ 75,000\n"
+        )
+        result = extract_values_from_text(text)
+        assert isinstance(result, list)
+        assert len(result) == 2
+        assert result[0][0] == '2023'
+        assert result[1][0] == '2024'
+
+    def test_net_revenues_label(self):
+        text = (
+            "Year Ended December 31,\n"
+            "2023 2024\n"
+            "Net revenues $ 100,000 $ 200,000\n"
+            "Cost of revenues $ 50,000 $ 75,000\n"
+        )
+        result = extract_values_from_text(text)
+        assert isinstance(result, list)
+        assert result[0][1] == '100000'
+        assert result[1][1] == '200000'
+
+    def test_cost_of_goods_sold_label(self):
+        text = (
+            "Year Ended December 31,\n"
+            "2023 2024\n"
+            "Consolidated revenues $ 100,000 $ 200,000\n"
+            "Cost of goods sold $ 50,000 $ 75,000\n"
+        )
+        result = extract_values_from_text(text)
+        assert isinstance(result, list)
+        assert result[0][2] == '50000'
+        assert result[1][2] == '75000'
+
+    def test_fiscal_year_prefix(self):
+        text = (
+            "Fiscal Year Ended December 31,\n"
+            "2023 2024\n"
+            "Consolidated revenues $ 100,000 $ 200,000\n"
+            "Cost of revenues $ 50,000 $ 75,000\n"
+        )
+        result = extract_values_from_text(text)
+        assert isinstance(result, list)
+        assert len(result) == 2
+
+    def test_three_years_extracted(self):
+        text = (
+            "Year Ended December 31,\n"
+            "2022 2023 2024\n"
+            "Consolidated revenues $ 282,836 $ 307,394 $ 350,018\n"
+            "Cost of revenues $ 110,959 $ 133,332 $ 146,306\n"
+        )
+        result = extract_values_from_text(text)
+        assert isinstance(result, list)
+        assert len(result) == 3
+        assert result[0][0] == '2022'
+        assert result[1][0] == '2023'
+        assert result[2][0] == '2024'
+        assert result[0][1] == '282836'
+        assert result[2][1] == '350018'
+
+    # --- end robustness tests ---
+
     def test_integration_with_real_data(self, sample_text):
         result = extract_values_from_text(sample_text)
         
